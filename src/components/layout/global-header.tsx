@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/auth-context';
 import { ChevronRight, GithubIcon, AlertCircle } from 'lucide-react';
 import { CloudflareLogo } from '../icons/logos';
+import { GeminiCodeLogo } from '../icons/geminicode-logo';
 import { usePlatformStatus } from '@/hooks/use-platform-status';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -41,42 +42,37 @@ export function GlobalHeader() {
 					{/* Main content */}
 					<div className="relative z-10 grid grid-cols-[auto_1fr_auto] items-center gap-4 px-5 py-2">
 						{/* Left section */}
-						{user ? (
-							<motion.div
-								whileTap={{ scale: 0.95 }}
-								transition={{
-									type: 'spring',
-									stiffness: 400,
-									damping: 17,
-								}}
-								className='flex items-center'
-							>
+						<motion.div
+							whileTap={{ scale: 0.95 }}
+							transition={{
+								type: 'spring',
+								stiffness: 400,
+								damping: 17,
+							}}
+							className='flex items-center gap-3'
+						>
+							{user && (
 								<SidebarTrigger className="h-8 w-8 text-text-primary rounded-md hover:bg-orange-50/40 transition-colors duration-200" />
-								<CloudflareLogo
-									className="flex-shrink-0 mx-auto transition-all duration-300"
-									style={{
-										width: '28px',
-										height: '28px',
-										marginLeft: '8px',
-									}}
-								/>
-								{hasMaintenanceMessage && (
-									<button
-										type="button"
-										onClick={hasChangeLogs ? () => setIsChangelogOpen(true) : undefined}
-										disabled={!hasChangeLogs}
-										className={`flex max-w-full items-center gap-2 rounded-full border border-accent/40 bg-bg-4/80 px-3 ml-4 py-1.5 text-xs text-text-primary shadow-sm backdrop-blur transition-colors hover:bg-accent/10 focus:outline-none focus:ring-2 focus:ring-accent/40 dark:border-accent/30 dark:bg-bg-2/80 md:text-sm${!hasChangeLogs ? ' opacity-50 cursor-not-allowed pointer-events-none' : ''}`}
-										aria-label="Platform updates"
-									>
-										<AlertCircle className="h-4 w-4 text-accent" />
-										<span className="truncate max-w-[46ch] md:max-w-[60ch]">{status.globalUserMessage}</span>
-										<ChevronRight className="ml-1 h-4 w-4 text-accent" />
-									</button>
-								)}
-							</motion.div>
-						) : (
-							<div></div>
-						)}
+							)}
+							<GeminiCodeLogo 
+								size={28}
+								className="flex-shrink-0 hover:opacity-80 transition-opacity duration-200 cursor-pointer"
+								onClick={() => window.location.href = '/'}
+							/>
+							{hasMaintenanceMessage && (
+								<button
+									type="button"
+									onClick={hasChangeLogs ? () => setIsChangelogOpen(true) : undefined}
+									disabled={!hasChangeLogs}
+									className={`flex max-w-full items-center gap-2 rounded-full border border-accent/40 bg-bg-4/80 px-3 py-1.5 text-xs text-text-primary shadow-sm backdrop-blur transition-colors hover:bg-accent/10 focus:outline-none focus:ring-2 focus:ring-accent/40 dark:border-accent/30 dark:bg-bg-2/80 md:text-sm${!hasChangeLogs ? ' opacity-50 cursor-not-allowed pointer-events-none' : ''}`}
+									aria-label="Platform updates"
+								>
+									<AlertCircle className="h-4 w-4 text-accent" />
+									<span className="truncate max-w-[46ch] md:max-w-[60ch]">{status.globalUserMessage}</span>
+									<ChevronRight className="ml-1 h-4 w-4 text-accent" />
+								</button>
+							)}
+						</motion.div>
 
 
 
