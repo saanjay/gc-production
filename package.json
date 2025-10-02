@@ -157,9 +157,5 @@
 	"prettier": {
 		"singleQuote": true,
 		"useTabs": true
-	},
-	"overrides": {
-		"vite": "npm:rolldown-vite@latest",
-		"@cloudflare/containers": "^0.0.28"
 	}
 }
