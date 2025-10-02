@@ -52,6 +52,7 @@ declare namespace Cloudflare {
 		IMAGES: ImagesBinding;
 		CF_VERSION_METADATA: WorkerVersionMetadata;
 		ASSETS: Fetcher;
+		PASSWORD_RESET_EMAIL: EmailBinding;
 	}
 }
 interface Env extends Cloudflare.Env {}

@@ -815,4 +815,174 @@ export class AuthService extends BaseService {
             );
         }
     }
+
+    /**
+     * Send password reset email
+     */
+    async sendPasswordResetEmail(email: string): Promise<void> {
+        const logger = createLogger('AuthService.sendPasswordResetEmail');
+        
+        try {
+            // Validate email format
+            if (!validateEmail(email)) {
+                throw new SecurityError(
+                    SecurityErrorType.INVALID_INPUT,
+                    'Invalid email format',
+                    400
+                );
+            }
+
+            const normalizedEmail = email.toLowerCase();
+
+            // Check if user exists
+            const user = await this.db.query.users.findFirst({
+                where: eq(schema.users.email, normalizedEmail)
+            });
+
+            if (!user) {
+                // Don't reveal if user exists or not for security
+                logger.info('Password reset requested for non-existent email', { email: normalizedEmail });
+                return;
+            }
+
+            // Generate password reset token
+            const resetToken = generateSecureToken(32);
+            const tokenHash = await PasswordService.hashPassword(resetToken);
+            const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+            // Store reset token in database
+            await this.db.insert(schema.passwordResetTokens).values({
+                userId: user.id,
+                tokenHash,
+                expiresAt
+            });
+
+            // Send email using Cloudflare Email Workers
+            await this.sendPasswordResetEmailMessage(normalizedEmail, resetToken, user.displayName || user.email);
+
+            logger.info('Password reset email sent', { email: normalizedEmail, userId: user.id });
+        } catch (error) {
+            if (error instanceof SecurityError) {
+                throw error;
+            }
+            
+            logger.error('Send password reset email error', error);
+            throw new SecurityError(
+                SecurityErrorType.INTERNAL_ERROR,
+                'Failed to send password reset email',
+                500
+            );
+        }
+    }
+
+    /**
+     * Reset password with token
+     */
+    async resetPassword(token: string, newPassword: string): Promise<void> {
+        const logger = createLogger('AuthService.resetPassword');
+        
+        try {
+            // Validate password
+            if (!validatePassword(newPassword)) {
+                throw new SecurityError(
+                    SecurityErrorType.INVALID_INPUT,
+                    'Password must be at least 8 characters long',
+                    400
+                );
+            }
+
+            const tokenHash = await PasswordService.hashPassword(token);
+
+            // Find valid reset token
+            const resetToken = await this.db.query.passwordResetTokens.findFirst({
+                where: and(
+                    eq(schema.passwordResetTokens.tokenHash, tokenHash),
+                    sql`${schema.passwordResetTokens.expiresAt} > datetime('now')`
+                ),
+                with: {
+                    user: true
+                }
+            });
+
+            if (!resetToken) {
+                throw new SecurityError(
+                    SecurityErrorType.INVALID_INPUT,
+                    'Invalid or expired reset token',
+                    400
+                );
+            }
+
+            // Hash new password
+            const hashedPassword = await PasswordService.hashPassword(newPassword);
+
+            // Update user password
+            await this.db.update(schema.users)
+                .set({ 
+                    password: hashedPassword,
+                    updatedAt: new Date()
+                })
+                .where(eq(schema.users.id, resetToken.userId));
+
+            // Delete used reset token
+            await this.db.delete(schema.passwordResetTokens)
+                .where(eq(schema.passwordResetTokens.id, resetToken.id));
+
+            logger.info('Password reset successful', { userId: resetToken.userId });
+        } catch (error) {
+            if (error instanceof SecurityError) {
+                throw error;
+            }
+            
+            logger.error('Reset password error', error);
+            throw new SecurityError(
+                SecurityErrorType.INTERNAL_ERROR,
+                'Failed to reset password',
+                500
+            );
+        }
+    }
+
+    /**
+     * Send password reset email using Cloudflare Email Workers
+     */
+    private async sendPasswordResetEmailMessage(email: string, resetToken: string, displayName: string): Promise<void> {
+        const { EmailMessage } = await import('cloudflare:email');
+        const { createMimeMessage } = await import('mimetext');
+
+        const resetUrl = `https://geminicode.ai/reset-password?token=${resetToken}`;
+        
+        const msg = createMimeMessage();
+        msg.setSender({ name: "GeminiCode.ai", addr: "noreply@geminicode.ai" });
+        msg.setRecipient(email);
+        msg.setSubject("Reset your GeminiCode.ai password");
+
+        msg.addMessage({
+            contentType: "text/html",
+            data: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: #2563eb;">Reset Your Password</h2>
+                    <p>Hello ${displayName},</p>
+                    <p>You requested to reset your password for your GeminiCode.ai account.</p>
+                    <p>Click the button below to reset your password:</p>
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="${resetUrl}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Reset Password</a>
+                    </div>
+                    <p>Or copy and paste this link into your browser:</p>
+                    <p style="word-break: break-all; color: #666;">${resetUrl}</p>
+                    <p>This link will expire in 24 hours.</p>
+                    <p>If you didn't request this password reset, please ignore this email.</p>
+                    <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+                    <p style="color: #666; font-size: 14px;">This email was sent from GeminiCode.ai</p>
+                </div>
+            `
+        });
+
+        const message = new EmailMessage(
+            "noreply@geminicode.ai",
+            email,
+            msg.asRaw()
+        );
+
+        await this.env.PASSWORD_RESET_EMAIL.send(message);
+    }
 }

@@ -9,6 +9,7 @@ import { X, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import clsx from 'clsx';
 import { useAuth } from '@/contexts/auth-context';
+import { apiClient } from '@/lib/api-client';
 // import {
 // 	validateEmail,
 // 	validatePassword,
@@ -393,8 +394,16 @@ export function LoginModal({
 												<button
 													type="button"
 													onClick={() => {
-														// TODO: Implement forgot password modal/page
-														alert('Forgot password functionality coming soon!');
+														const email = prompt('Enter your email address to reset your password:');
+														if (email && email.trim()) {
+															// Call the forgot password API
+															apiClient.forgotPassword(email.trim()).then(() => {
+																alert('If an account with that email exists, a password reset link has been sent.');
+															}).catch((err) => {
+																alert('Failed to send password reset email. Please try again.');
+																console.error('Forgot password error:', err);
+															});
+														}
 													}}
 													className="text-sm text-primary hover:text-primary/80 transition-colors"
 													disabled={isLoading}
