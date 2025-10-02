@@ -10,7 +10,9 @@ import { generateApiKey } from '../../../utils/cryptoUtils';
 import { 
     loginSchema, 
     registerSchema, 
-    oauthProviderSchema
+    oauthProviderSchema,
+    forgotPasswordSchema,
+    resetPasswordSchema
 } from './authSchemas';
 import { SecurityError } from 'shared/types/errors';
 import { 
@@ -669,6 +671,52 @@ export class AuthController extends BaseController {
         } catch (error) {
             console.error('Get auth providers error:', error);
             return AuthController.createErrorResponse('Failed to get authentication providers', 500);
+        }
+    }
+
+    /**
+     * Forgot password - Send password reset email
+     * POST /api/auth/forgot-password
+     */
+    static async forgotPassword(request: Request, env: Env, _ctx: ExecutionContext, _routeContext: RouteContext): Promise<Response> {
+        try {
+            const bodyResult = await AuthController.parseJsonBody(request);
+            if (!bodyResult.success) {
+                return bodyResult.response!;
+            }
+
+            const validatedData = forgotPasswordSchema.parse(bodyResult.data);
+            const authService = new AuthService(env);
+            await authService.sendPasswordResetEmail(validatedData.email);
+            
+            return AuthController.createSuccessResponse({
+                message: 'If an account with that email exists, a password reset link has been sent.'
+            });
+        } catch (error) {
+            return AuthController.handleError(error, 'forgot password');
+        }
+    }
+
+    /**
+     * Reset password - Reset password with token
+     * POST /api/auth/reset-password
+     */
+    static async resetPassword(request: Request, env: Env, _ctx: ExecutionContext, _routeContext: RouteContext): Promise<Response> {
+        try {
+            const bodyResult = await AuthController.parseJsonBody(request);
+            if (!bodyResult.success) {
+                return bodyResult.response!;
+            }
+
+            const validatedData = resetPasswordSchema.parse(bodyResult.data);
+            const authService = new AuthService(env);
+            await authService.resetPassword(validatedData.token, validatedData.password);
+            
+            return AuthController.createSuccessResponse({
+                message: 'Password has been reset successfully.'
+            });
+        } catch (error) {
+            return AuthController.handleError(error, 'reset password');
         }
     }
 }

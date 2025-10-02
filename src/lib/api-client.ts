@@ -1071,6 +1071,29 @@ class ApiClient {
 	}
 
 	/**
+	 * Send forgot password email
+	 */
+	async forgotPassword(email: string): Promise<ApiResponse<{ message: string }>> {
+		return this.request<{ message: string }>('/api/auth/forgot-password', {
+			method: 'POST',
+			body: { email },
+		});
+	}
+
+	/**
+	 * Reset password with token
+	 */
+	async resetPassword(data: {
+		token: string;
+		password: string;
+	}): Promise<ApiResponse<{ message: string }>> {
+		return this.request<{ message: string }>('/api/auth/reset-password', {
+			method: 'POST',
+			body: data,
+		});
+	}
+
+	/**
 	 * Verify email with OTP
 	 */
 	async verifyEmail(data: {

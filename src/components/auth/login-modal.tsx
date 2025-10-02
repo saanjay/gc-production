@@ -388,6 +388,22 @@ export function LoginModal({
 											)}
 										</div>
 
+										{mode === 'login' && (
+											<div className="text-right">
+												<button
+													type="button"
+													onClick={() => {
+														// TODO: Implement forgot password modal/page
+														alert('Forgot password functionality coming soon!');
+													}}
+													className="text-sm text-primary hover:text-primary/80 transition-colors"
+													disabled={isLoading}
+												>
+													Forgot password?
+												</button>
+											</div>
+										)}
+
 										{mode === 'register' && (
 											<div>
 												<input
