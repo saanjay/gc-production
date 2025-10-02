@@ -835,9 +835,11 @@ export class AuthService extends BaseService {
             const normalizedEmail = email.toLowerCase();
 
             // Check if user exists
-            const user = await this.db.query.users.findFirst({
-                where: eq(schema.users.email, normalizedEmail)
-            });
+            const user = await this.database
+                .select()
+                .from(schema.users)
+                .where(eq(schema.users.email, normalizedEmail))
+                .get();
 
             if (!user) {
                 // Don't reveal if user exists or not for security
@@ -847,11 +849,12 @@ export class AuthService extends BaseService {
 
             // Generate password reset token
             const resetToken = generateSecureToken(32);
-            const tokenHash = await PasswordService.hashPassword(resetToken);
+            const tokenHash = await new PasswordService().hash(resetToken);
             const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
             // Store reset token in database
-            await this.db.insert(schema.passwordResetTokens).values({
+            await this.database.insert(schema.passwordResetTokens).values({
+                id: generateId(),
                 userId: user.id,
                 tokenHash,
                 expiresAt
@@ -868,7 +871,7 @@ export class AuthService extends BaseService {
             
             logger.error('Send password reset email error', error);
             throw new SecurityError(
-                SecurityErrorType.INTERNAL_ERROR,
+                SecurityErrorType.INVALID_INPUT,
                 'Failed to send password reset email',
                 500
             );
@@ -891,18 +894,17 @@ export class AuthService extends BaseService {
                 );
             }
 
-            const tokenHash = await PasswordService.hashPassword(token);
+            const tokenHash = await new PasswordService().hash(token);
 
             // Find valid reset token
-            const resetToken = await this.db.query.passwordResetTokens.findFirst({
-                where: and(
+            const resetToken = await this.database
+                .select()
+                .from(schema.passwordResetTokens)
+                .where(and(
                     eq(schema.passwordResetTokens.tokenHash, tokenHash),
                     sql`${schema.passwordResetTokens.expiresAt} > datetime('now')`
-                ),
-                with: {
-                    user: true
-                }
-            });
+                ))
+                .get();
 
             if (!resetToken) {
                 throw new SecurityError(
@@ -913,18 +915,18 @@ export class AuthService extends BaseService {
             }
 
             // Hash new password
-            const hashedPassword = await PasswordService.hashPassword(newPassword);
+            const hashedPassword = await new PasswordService().hash(newPassword);
 
             // Update user password
-            await this.db.update(schema.users)
+            await this.database.update(schema.users)
                 .set({ 
-                    password: hashedPassword,
+                    passwordHash: hashedPassword,
                     updatedAt: new Date()
                 })
                 .where(eq(schema.users.id, resetToken.userId));
 
             // Delete used reset token
-            await this.db.delete(schema.passwordResetTokens)
+            await this.database.delete(schema.passwordResetTokens)
                 .where(eq(schema.passwordResetTokens.id, resetToken.id));
 
             logger.info('Password reset successful', { userId: resetToken.userId });
@@ -935,7 +937,7 @@ export class AuthService extends BaseService {
             
             logger.error('Reset password error', error);
             throw new SecurityError(
-                SecurityErrorType.INTERNAL_ERROR,
+                SecurityErrorType.INVALID_INPUT,
                 'Failed to reset password',
                 500
             );

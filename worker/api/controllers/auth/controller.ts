@@ -710,7 +710,7 @@ export class AuthController extends BaseController {
 
             const validatedData = resetPasswordSchema.parse(bodyResult.data);
             const authService = new AuthService(env);
-            await authService.resetPassword(validatedData.token, validatedData.password);
+            await authService.resetPassword(validatedData.token, validatedData.newPassword);
             
             return AuthController.createSuccessResponse({
                 message: 'Password has been reset successfully.'
