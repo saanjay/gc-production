@@ -139,6 +139,16 @@
             "pattern": "*build-preview.cloudflare.dev/*",
             "custom_domain": false,
             "zone_id": "db01fac4261b2604aacad8410443a3e2"
+        },
+        {
+            "pattern": "geminicode.ai",
+            "custom_domain": true,
+            "zone_id": "db01fac4261b2604aacad8410443a3e2"
+        },
+        {
+            "pattern": "*.geminicode.ai/*",
+            "custom_domain": true,
+            "zone_id": "db01fac4261b2604aacad8410443a3e2"
         }
     ],
 	"vars": {
