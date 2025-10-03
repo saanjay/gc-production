@@ -147,6 +147,7 @@
         "ENABLE_READ_REPLICAS": "true",
         "CLOUDFLARE_AI_GATEWAY": "gc-gateway",
         "CUSTOM_DOMAIN": "geminicode.ai",
+        "CUSTOM_PREVIEW_DOMAIN": "geminicode.ai",
         "MAX_SANDBOX_INSTANCES": "10",
         "SANDBOX_INSTANCE_TYPE": "standard"
     },
