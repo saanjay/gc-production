@@ -9,7 +9,8 @@ import cssWorker from 'monaco-editor/esm/vs/language/css/css.worker?worker';
 import htmlWorker from 'monaco-editor/esm/vs/language/html/html.worker?worker';
 import tsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker';
 
-import defaultCode from '../../routes?raw';
+// Default code for Monaco Editor
+const defaultCode = '// Welcome to GeminiCode.ai\n// Start building your application here...';
 import './monaco-editor.module.css';
 
 self.MonacoEnvironment = {
@@ -177,12 +178,18 @@ export const MonacoEditor = memo<MonacoEditorProps>(function MonacoEditor({
 		if (theme === 'system') {
 			configuredTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 		}
+		// Create a proper model with URI
+		const modelUri = monaco.Uri.parse('inmemory://model/1');
+		const model = monaco.editor.createModel(
+			createOptions.value || defaultCode,
+			createOptions.language || 'typescript'
+		);
+
 		editor.current = monaco.editor.create(containerRef.current!, {
-			language: createOptions.language || 'typescript',
+			model: model,
 			minimap: { enabled: false },
 			theme: configuredTheme === 'dark' ? 'v1-dev-dark' : 'v1-dev',
 			automaticLayout: true,
-			value: defaultCode,
 			fontSize: 13,
 			...createOptions,
 		});
@@ -208,6 +215,7 @@ export const MonacoEditor = memo<MonacoEditorProps>(function MonacoEditor({
 
 		return () => {
 			editor.current?.dispose();
+			model.dispose();
 		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
