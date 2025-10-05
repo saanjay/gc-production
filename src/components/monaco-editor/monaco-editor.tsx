@@ -182,7 +182,8 @@ export const MonacoEditor = memo<MonacoEditorProps>(function MonacoEditor({
 		const modelUri = monaco.Uri.parse('inmemory://model/1');
 		const model = monaco.editor.createModel(
 			createOptions.value || defaultCode,
-			createOptions.language || 'typescript'
+			createOptions.language || 'typescript',
+			modelUri
 		);
 
 		editor.current = monaco.editor.create(containerRef.current!, {
